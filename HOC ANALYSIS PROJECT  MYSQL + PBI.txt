@@ -1,0 +1,193 @@
+-- Objective 1: Provide a comprehensive analysis of total sales revenue, average order values, and units sold.
+-- 1.What is the total sales revenue for each year? 
+
+SELECT
+	s.Sale_Year,
+	s. Sale_Month,
+	p.Product, 
+	s.ID_Store, 
+	sum(s.Total_Sale) as Total_Sales, 
+	e.Name AS employees, 
+	c.Name as customer
+FROM sales s 
+	JOIN customer c ON s.ID_Customer = c. ID_Customer
+	JOIN employees e  ON s.ID_Salesman = e. ID_Salesman
+	JOIN product p ON s. ID_Product = p.ID_Product
+group by 
+    s.Sale_Year,
+    s.Sale_Month,
+    p.Product, 
+    s.ID_Store,
+    e.Name,
+    c.Name;
+
+
+-- 2. What is the average order value (AOV) across all sales?
+
+SELECT 
+    AVG(s.Total_Sale) AS AOV,
+    e.Name AS employees,
+    c.Name AS customer
+FROM sales s 
+JOIN customer c ON s.ID_Customer = c.ID_Customer
+JOIN employees e ON s.ID_Salesman = e.ID_Salesman
+GROUP BY
+    e.Name,
+    c.Name;
+
+
+
+-- 3. How many units were sold in total?
+
+SELECT 
+    SUM(s.Unit_Sold) AS Total_Units_Sold,
+    e.Name AS employees,
+    c.Name AS customer
+FROM sales s 
+JOIN customer c ON s.ID_Customer = c.ID_Customer
+JOIN employees e ON s.ID_Salesman = e.ID_Salesman
+GROUP BY 
+    e.Name,
+    c.Name;
+
+
+
+-- Objective 2: Determine total sales by customer to identify top customers and their purchasing behavior.
+-- 2.1 Which customers contribute the most to total sales revenue?
+
+SELECT 
+    c.Name AS Customer, 
+    SUM(s.Total_Sale) AS Total_Sale_Customer
+FROM sales s
+JOIN customer c ON s.ID_Customer = c.ID_Customer
+GROUP BY c.Name
+ORDER BY Total_Sale_Customer DESC;
+
+
+
+
+
+-- 2.2 What is the purchasing behavior of the top customers?
+SELECT 
+    c.Name AS Customer, 
+    COUNT(s.ID_Sale) AS Number_of_Orders, 
+    SUM(s.Total_Sale) AS Total_Sale_Customer
+FROM sales s
+JOIN customer c ON s.ID_Customer = c.ID_Customer
+GROUP BY c.Name
+ORDER BY Total_Sale_Customer DESC;
+
+
+
+
+
+-- Objective 3: Assess total sales by employee to recognize high performers and areas for improvement.
+-- 3.1 Which employees are generating the highest sales revenue?
+SELECT 
+    e.Name AS Employee, 
+    SUM(s.Total_Sale) AS Total_Sales
+FROM sales s
+JOIN employees e ON s.ID_Salesman = e.ID_Salesman
+GROUP BY e.Name
+ORDER BY Total_Sales DESC;
+
+
+
+
+
+-- 3.2 What is the average sales performance per employee?
+SELECT 
+    e.Name AS Employee, 
+    AVG(s.Total_Sale) AS Average_Sale
+FROM sales s
+JOIN employees e ON s.ID_Salesman = e.ID_Salesman
+GROUP BY e.Name;
+
+
+
+
+
+-- Objective 4: Analyze sales by product to identify best-selling products and categories.
+-- 4.1 What are the best-selling products by total sales revenue?
+SELECT 
+    p.Product, 
+    SUM(s.Total_Sale) AS Total_Sale_Product
+FROM sales s
+JOIN product p ON s.ID_Product = p.ID_Product
+GROUP BY p.Product
+ORDER BY Total_Sale_Product DESC;
+
+
+
+
+-- 4.2 Which product categories are performing the best?
+
+SELECT 
+    p.Product, 
+    SUM(s.Total_Sale) AS Total_Sale_Category
+FROM sales s
+JOIN product p ON s.ID_Product = p.ID_Product
+GROUP BY p.Product
+ORDER BY Total_Sale_Category DESC;
+
+
+-- 1. Stored Procedure for Monthly Sales Summary
+DELIMITER //
+CREATE PROCEDURE MonthlySalesSummary (
+    IN report_month INT,
+    IN report_year INT
+)
+BEGIN
+    SELECT 
+        SUM(s.Total_Sale) AS Total_Sales,
+        COUNT(s.ID_Sale) AS Number_of_Orders,
+        SUM(s.Unit_Sold) AS Total_Units_Sold,
+        e.Name AS Employee,
+        c.Name AS Customer
+    FROM sales s 
+    JOIN customer c ON s.ID_Customer = c.ID_Customer
+    JOIN employees e ON s.ID_Salesman = e.ID_Salesman
+    WHERE MONTH(s.Sale_Date) = report_month AND YEAR(s.Sale_Date) = report_year
+    GROUP BY 
+        e.Name,
+        c.Name;
+END//
+DELIMITER ;
+
+-- 2. Stored Procedure for Monthly Customer Sales
+
+DELIMITER //
+CREATE PROCEDURE MonthlyCustomerSales (
+    IN report_month INT,
+    IN report_year INT
+)
+BEGIN
+    SELECT 
+        c.Name AS Customer,
+        SUM(s.Total_Sale) AS Total_Sale_Customer
+    FROM sales s
+    JOIN customer c ON s.ID_Customer = c.ID_Customer
+    WHERE MONTH(s.Sale_Date) = report_month AND YEAR(s.Sale_Date) = report_year
+    GROUP BY c.Name
+    ORDER BY Total_Sale_Customer DESC;
+END//
+DELIMITER ;
+
+-- 3. Stored Procedure for Employee Sales Performance
+
+DELIMITER //
+CREATE PROCEDURE MonthlyEmployeeSales (
+    IN report_month INT,
+    IN report_year INT
+)
+BEGIN
+    SELECT 
+        e.Name AS Employee,
+        SUM(s.Total_Sale) AS Total_Sales
+    FROM sales s
+    JOIN employees e ON s.ID_Salesman = e.ID_Salesman
+    WHERE MONTH(s.Sale_Date) = report_month AND YEAR(s.Sale_Date) = report_year
+    GROUP BY e.Name
+    ORDER BY Total_Sales DESC;
+END//
+DELIMITER ;
